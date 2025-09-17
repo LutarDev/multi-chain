@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readDb, writeDb, type Purchase } from "@/server/db";
 import { verifyEvmTx, verifySolTx, verifyTronTx, verifyBtcTx } from "@/server/verify";
+import { isValidBscAddress } from "@/lib/explorers";
 import { fetchUsdPrice } from "@/lib/prices";
 
 export async function GET() {
@@ -14,6 +15,9 @@ export async function POST(req: NextRequest) {
     const { chain, currency, amount, fromAddress, bscReceiver, txHash, referral } = body || {};
     if (!chain || !currency || !amount || !txHash) {
       return NextResponse.json({ ok: false, error: "missing fields" }, { status: 400 });
+    }
+    if (bscReceiver && !isValidBscAddress(bscReceiver)) {
+      return NextResponse.json({ ok: false, error: "invalid BSC address" }, { status: 400 });
     }
 
     const db = await readDb();

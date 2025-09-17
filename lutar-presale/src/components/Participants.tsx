@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { explorerTxUrl } from "@/lib/explorers";
 
 type Row = {
   id: string;

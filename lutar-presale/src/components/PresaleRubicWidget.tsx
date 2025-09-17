@@ -166,6 +166,9 @@ export function PresaleRubicWidget() {
               value={bscReceiver}
               onChange={(e) => setBscReceiver(e.target.value)}
             />
+            {bscReceiver && !/^0x[a-fA-F0-9]{40}$/.test(bscReceiver) ? (
+              <div className="text-xs text-red-400 mt-1">Invalid BSC address format.</div>
+            ) : null}
           </div>
 
           {/* Action */}

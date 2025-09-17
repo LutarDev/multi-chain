@@ -37,7 +37,13 @@ export default async function InvestmentsPage() {
             <div>{p.currency}</div>
             <div>{p.amount}</div>
             <div className={p.status === "confirmed" ? "text-green-400" : "text-yellow-400"}>{p.status}</div>
-            <div className="truncate">{p.txHash || "—"}</div>
+            <div className="truncate">
+              {p.txHash ? (
+                <a className="underline" href={`/tx?chain=${encodeURIComponent(p.chain)}&hash=${encodeURIComponent(p.txHash)}`} target="_blank">View</a>
+              ) : (
+                "—"
+              )}
+            </div>
           </div>
         ))}
       </div>
