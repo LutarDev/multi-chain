@@ -198,7 +198,12 @@ export function PresaleRubicWidget() {
             <div className="flex justify-between"><span>Receive</span><span>{lutarAmount} LUTAR on BSC</span></div>
             <div className="flex justify-between"><span>BSC Address</span><span className="break-all">{bscReceiver}</span></div>
             <div className="pt-3">
-              <PresaleWidget />
+              <PresaleWidget
+                chain={chain}
+                currency={currency}
+                payAmount={payAmount}
+                bscReceiver={bscReceiver}
+              />
             </div>
           </div>
         )}

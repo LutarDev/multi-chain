@@ -17,16 +17,24 @@ import { USDT_TRC20_CONTRACT } from "@/lib/tron";
 type ChainKey = "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON";
 type CurrencyKey = ChainKey | "USDC" | "USDT";
 
+type PresaleProps = {
+  chain?: ChainKey;
+  currency?: CurrencyKey;
+  payAmount?: string;
+  bscReceiver?: string;
+  onRecorded?: (result: { ok: boolean; txHash?: string }) => void;
+};
+
 const SOL_RPC = "https://api.mainnet-beta.solana.com";
 
 function classNames(...arr: (string | undefined | false)[]) {
   return arr.filter(Boolean).join(" ");
 }
 
-export function PresaleWidget() {
-  const [selectedChain, setSelectedChain] = useState<ChainKey>("ETH");
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyKey>("ETH");
-  const [amount, setAmount] = useState<string>("");
+export function PresaleWidget(props: PresaleProps = {}) {
+  const [selectedChain, setSelectedChain] = useState<ChainKey>(props.chain || "ETH");
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyKey>(props.currency || "ETH");
+  const [amount, setAmount] = useState<string>(props.payAmount || "");
   const [btcQr, setBtcQr] = useState<string>("");
 
   // EVM
@@ -78,6 +86,8 @@ export function PresaleWidget() {
   async function onBuy() {
     const amt = Number(amount);
     if (!amt || amt <= 0) return;
+    let txHash: string | undefined;
+    const referral = typeof window !== "undefined" ? localStorage.getItem("lutar_ref_code") : null;
 
     // BTC: show QR to pay to fixed address
     if (selectedCurrency === "BTC") {
@@ -85,6 +95,7 @@ export function PresaleWidget() {
       const uri = `bitcoin:${addr}?amount=${amt}`;
       const dataUrl = await QRCode.toDataURL(uri);
       setBtcQr(dataUrl);
+      await postIntent(undefined);
       return;
     }
 
@@ -96,7 +107,8 @@ export function PresaleWidget() {
           : selectedCurrency === "BNB"
           ? RECEIVING_ADDRESSES.BNB
           : RECEIVING_ADDRESSES.POL;
-      await sendTransactionAsync({ to, value: parseEther(String(amt)) });
+      txHash = await sendTransactionAsync({ to, value: parseEther(String(amt)) });
+      await postIntent(txHash);
       return;
     }
 
@@ -129,13 +141,14 @@ export function PresaleWidget() {
           functionName: "decimals",
         })) as number;
         const amountParsed = parseUnits(String(amt), decimals || 6);
-        await writeContractAsync({
+        txHash = await writeContractAsync({
           address: tokenAddress as `0x${string}`,
           abi: ERC20_ABI,
           functionName: "transfer",
           args: [to as `0x${string}`, amountParsed],
           chainId: desiredChainId,
         });
+        await postIntent(txHash);
         return;
       }
     }
@@ -147,6 +160,8 @@ export function PresaleWidget() {
       const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: from, toPubkey: toPub, lamports: Math.round(amt * 1e9) }));
       const sig = await solWallet.sendTransaction(tx, solConnection);
       await solConnection.confirmTransaction(sig, "confirmed");
+      txHash = sig;
+      await postIntent(txHash);
       return;
     }
 
@@ -161,6 +176,8 @@ export function PresaleWidget() {
       const tx = new Transaction().add(ix);
       const sig = await solWallet.sendTransaction(tx, solConnection);
       await solConnection.confirmTransaction(sig, "confirmed");
+      txHash = sig;
+      await postIntent(txHash);
       return;
     }
 
@@ -171,14 +188,20 @@ export function PresaleWidget() {
       if (!tw) throw new Error("TronWeb not available");
       if (selectedCurrency === "TRX") {
         const to = RECEIVING_ADDRESSES.TRX;
-        await tw.trx.sendTransaction(to, Math.round(amt * 1_000_000));
+        const res = await tw.trx.sendTransaction(to, Math.round(amt * 1_000_000));
+        const r = res as unknown as { txid?: string; txID?: string };
+        txHash = r.txid || r.txID;
+        await postIntent(txHash);
         return;
       }
       if (selectedCurrency === "USDT") {
         const contract = await tw.contract().at(USDT_TRC20_CONTRACT as string);
         const to = RECEIVING_ADDRESSES.USDT.TRC20;
         const amountInSun = Math.round(amt * 1_000_000);
-        await contract.transfer(to, amountInSun).send();
+        const res = await contract.transfer(to, amountInSun).send();
+        const r = res as unknown as { txid?: string; txID?: string };
+        txHash = r.txid || r.txID;
+        await postIntent(txHash);
         return;
       }
     }
@@ -199,10 +222,34 @@ export function PresaleWidget() {
           },
         ],
       });
+      await postIntent(undefined);
       return;
     }
 
     alert("Selected currency flow is not implemented in this demo.");
+  }
+
+  async function postIntent(txHash?: string) {
+    try {
+      const body = {
+        chain: selectedChain,
+        currency: selectedCurrency,
+        amount: Number(amount),
+        fromAddress: evmAddress || solWallet.publicKey?.toBase58() || tonWallet?.account?.address || tronAddress,
+        bscReceiver: props.bscReceiver,
+        txHash,
+        referral: typeof window !== "undefined" ? localStorage.getItem("lutar_ref_code") : null,
+      };
+      const res = await fetch("/api/purchase-intents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      props.onRecorded?.({ ok: json?.ok, txHash });
+    } catch (e) {
+      props.onRecorded?.({ ok: false, txHash });
+    }
   }
 
   const chains: ChainKey[] = ["BTC", "ETH", "BNB", "SOL", "POL", "TRX", "TON"];
@@ -281,6 +328,7 @@ export function PresaleWidget() {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="decimal"
+          disabled={!!props.payAmount}
         />
       </div>
       <div className="flex items-center justify-between mb-4 text-sm text-white/60">

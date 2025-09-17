@@ -36,6 +36,7 @@ export default function RootLayout({
           <header className="mb-6 flex items-center justify-between">
             <nav className="flex items-center gap-4 text-sm text-white/80">
               <Link href="/" className="font-semibold">LUTAR Presale</Link>
+              <Link href="/investments">My Investments</Link>
               <Link href="/docs">Docs</Link>
               <Link href="/whitepaper">Whitepaper</Link>
               <Link href="/audit" target="_blank">Audit</Link>
