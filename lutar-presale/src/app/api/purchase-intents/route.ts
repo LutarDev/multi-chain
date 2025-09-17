@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readDb, writeDb, type Purchase } from "@/server/db";
+import { prisma } from "@/server/prisma";
 import { verifyEvmTx, verifySolTx, verifyTronTx, verifyBtcTx } from "@/server/verify";
 import { isValidBscAddress } from "@/lib/explorers";
 import { fetchUsdPrice } from "@/lib/prices";
 
 export async function GET() {
-  const db = await readDb();
-  return NextResponse.json(db);
+  const purchases = await prisma.purchase.findMany({ orderBy: { createdAt: "desc" } });
+  return NextResponse.json({ purchases });
 }
 
 export async function POST(req: NextRequest) {
@@ -20,10 +20,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "invalid BSC address" }, { status: 400 });
     }
 
-    const db = await readDb();
-    const purchase: Purchase = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      ts: Date.now(),
+    const purchase: {
+      chain: string;
+      currency: string;
+      amount: number;
+      fromAddress?: string;
+      bscReceiver?: string;
+      txHash?: string;
+      status: string;
+      referral?: string | null;
+    } = {
       chain,
       currency,
       amount: Number(amount),
@@ -32,7 +38,7 @@ export async function POST(req: NextRequest) {
       txHash,
       status: "pending",
       referral: referral || null,
-    };
+    } as const;
 
     // Try to verify by chain
     if (["ETH", "BNB", "POL"].includes(chain)) {
@@ -50,11 +56,9 @@ export async function POST(req: NextRequest) {
     }
 
     const usdPrice = await fetchUsdPrice(currency);
-    purchase.usdAmount = Number(amount) * (currency === "USDC" || currency === "USDT" ? 1 : usdPrice);
-
-    db.purchases.push(purchase);
-    await writeDb(db);
-    return NextResponse.json({ ok: true, purchase });
+    const usdAmount = Number(amount) * (currency === "USDC" || currency === "USDT" ? 1 : usdPrice);
+    const created = await prisma.purchase.create({ data: { ...purchase, usdAmount } });
+    return NextResponse.json({ ok: true, purchase: created });
   } catch (e) {
     return NextResponse.json({ ok: false, error: "bad request" }, { status: 400 });
   }
