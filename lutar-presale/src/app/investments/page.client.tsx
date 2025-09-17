@@ -26,12 +26,13 @@ export function InvestmentsClient({ initial }: { initial: Row[] }) {
     // refresh
     (async () => {
       try {
-        const r = await fetch("/api/purchase-intents", { cache: "no-store" });
+        const headers: HeadersInit = address ? { "x-user-address": address } : {};
+        const r = await fetch("/api/purchase-intents", { cache: "no-store", headers });
         const j = await r.json();
         setRows(j?.purchases || []);
       } catch {}
     })();
-  }, []);
+  }, [address]);
   return (
     <div className="rounded-xl border border-white/10 bg-white/5">
       <div className="grid grid-cols-7 gap-2 text-xs text-white/60 px-3 py-2 border-b border-white/10">

@@ -4,8 +4,10 @@ import { verifyEvmTx, verifySolTx, verifyTronTx, verifyBtcTx } from "@/server/ve
 import { isValidBscAddress } from "@/lib/explorers";
 import { fetchUsdPrice } from "@/lib/prices";
 
-export async function GET() {
-  const purchases = await prisma.purchase.findMany({ orderBy: { createdAt: "desc" } });
+export async function GET(req: NextRequest) {
+  const address = req.headers.get("x-user-address");
+  const where = address ? { fromAddress: address } : {};
+  const purchases = await prisma.purchase.findMany({ where, orderBy: { createdAt: "desc" } });
   return NextResponse.json({ purchases });
 }
 
