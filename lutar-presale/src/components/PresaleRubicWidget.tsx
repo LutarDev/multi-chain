@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ChainCoinSelectModal } from "@/components/ChainCoinSelectModal";
 import { useAccount } from "wagmi";
 import { openWalletModal } from "@/state/wallet-modal";
 import { PresaleWidget } from "@/components/PresaleWidget";
+import { CHAIN_ICONS, TOKEN_ICONS } from "@/lib/icons";
+import { calcLutarAmount, fetchUsdPrice } from "@/lib/prices";
 
 type ChainKey = "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON";
 type CurrencyKey = ChainKey | "USDC" | "USDT";
@@ -22,19 +24,33 @@ export function PresaleRubicWidget() {
   const [bscReceiver, setBscReceiver] = useState<string>("");
   const [showReview, setShowReview] = useState(false);
 
+  const [usdPrice, setUsdPrice] = useState<number>(1);
+  useEffect(() => {
+    (async () => {
+      try {
+        const price = await fetchUsdPrice(currency as unknown as "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON" | "USDC" | "USDT");
+        setUsdPrice(price);
+      } catch {
+        setUsdPrice(1);
+      }
+    })();
+  }, [currency]);
+
   const lutarAmount = useMemo(() => {
     const n = Number(payAmount || 0);
     if (!n || n <= 0) return "0";
-    const usd = currency === "USDC" || currency === "USDT" ? n : n; // assume 1 native ~ 1 unit for preview; true pricing requires oracles
-    const tokens = usd / 0.004;
-    return Math.floor(tokens).toLocaleString();
-  }, [payAmount, currency]);
+    return calcLutarAmount(n, currency as unknown as "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON" | "USDC" | "USDT", usdPrice).toLocaleString();
+  }, [payAmount, currency, usdPrice]);
 
   const canSubmit = Boolean(payAmount && Number(payAmount) > 0 && bscReceiver);
 
   function handleSelect(newChain: ChainKey, newCurrency: CurrencyKey) {
     setChain(newChain);
     setCurrency(newCurrency);
+    // Auto-fill BSC address if BNB selected and user has EVM address
+    if (newChain === "BNB" && address) {
+      setBscReceiver(address);
+    }
     setSelectOpen(false);
   }
 
@@ -68,8 +84,14 @@ export function PresaleRubicWidget() {
                 onChange={(e) => setPayAmount(e.target.value)}
                 inputMode="decimal"
               />
-              <div className="text-sm px-2 py-1 rounded bg-white/10 border border-white/10">
-                {currency} on {chain}
+              <div className="flex items-center gap-2 text-sm px-2 py-1 rounded bg-white/10 border border-white/10">
+                <div className="relative w-5 h-5">
+                  <Image src={CHAIN_ICONS[chain]} alt={chain} fill sizes="20px" />
+                </div>
+                <div className="relative w-5 h-5">
+                  <Image src={TOKEN_ICONS[currency] || CHAIN_ICONS[chain]} alt={currency} fill sizes="20px" />
+                </div>
+                <span>{currency} on {chain}</span>
               </div>
             </div>
           </div>
