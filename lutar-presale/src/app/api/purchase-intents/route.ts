@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readDb, writeDb, type Purchase } from "@/server/db";
-import { verifyEvmTx } from "@/server/verify";
+import { verifyEvmTx, verifySolTx, verifyTronTx, verifyBtcTx } from "@/server/verify";
 import { fetchUsdPrice } from "@/lib/prices";
 
 export async function GET() {
@@ -30,9 +30,18 @@ export async function POST(req: NextRequest) {
       referral: referral || null,
     };
 
-    // Try to verify for EVM chains
+    // Try to verify by chain
     if (["ETH", "BNB", "POL"].includes(chain)) {
       const ok = await verifyEvmTx(chain, txHash);
+      purchase.status = ok ? "confirmed" : "pending";
+    } else if (chain === "SOL") {
+      const ok = await verifySolTx(txHash);
+      purchase.status = ok ? "confirmed" : "pending";
+    } else if (chain === "TRX") {
+      const ok = await verifyTronTx(txHash);
+      purchase.status = ok ? "confirmed" : "pending";
+    } else if (chain === "BTC") {
+      const ok = await verifyBtcTx(txHash);
       purchase.status = ok ? "confirmed" : "pending";
     }
 
