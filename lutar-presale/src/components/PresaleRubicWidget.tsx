@@ -23,6 +23,31 @@ export function PresaleRubicWidget() {
   const [payAmount, setPayAmount] = useState<string>("");
   const [bscReceiver, setBscReceiver] = useState<string>("");
   const [showReview, setShowReview] = useState(false);
+  const [metrics, setMetrics] = useState<{ raised: number; participants: number; softCap: number; hardCap: number } | null>(null);
+  const [now, setNow] = useState<number>(Date.now());
+
+  // Simple countdown config
+  const startAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const endAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const remainingMs = Math.max(0, new Date(endAt).getTime() - now);
+  const days = Math.floor(remainingMs / (24 * 3600_000));
+  const hours = Math.floor((remainingMs % (24 * 3600_000)) / 3600_000);
+  const minutes = Math.floor((remainingMs % 3600_000) / 60_000);
+  const seconds = Math.floor((remainingMs % 60_000) / 1000);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/metrics");
+        const data = await r.json();
+        setMetrics(data);
+      } catch {}
+    })();
+  }, [showReview]);
 
   const [usdPrice, setUsdPrice] = useState<number>(1);
   useEffect(() => {
@@ -64,6 +89,21 @@ export function PresaleRubicWidget() {
           <div>
             <div className="text-lg font-semibold">LUTAR Presale</div>
             <div className="text-xs text-white/60">Cyberpunk minimal • price 1 LUTAR = 0.004 USDC/USDT</div>
+          </div>
+        </div>
+
+        {/* Countdown & Progress */}
+        <div className="mb-4 grid grid-cols-2 gap-3 text-sm">
+          <div className="rounded bg-white/5 border border-white/10 p-3">
+            <div className="text-white/60 text-xs mb-1">Time remaining</div>
+            <div className="font-mono">{days}d {hours}h {minutes}m {seconds}s</div>
+          </div>
+          <div className="rounded bg-white/5 border border-white/10 p-3">
+            <div className="text-white/60 text-xs mb-1">Raised</div>
+            <div className="font-mono">${metrics ? metrics.raised.toLocaleString() : "—"} / ${metrics ? metrics.hardCap.toLocaleString() : "5,000,000"}</div>
+            <div className="mt-1 h-2 rounded bg-white/10">
+              <div className="h-2 rounded bg-[#ffc700]" style={{ width: `${metrics ? Math.min(100, (metrics.raised / (metrics.hardCap || 1)) * 100) : 0}%` }} />
+            </div>
           </div>
         </div>
 
