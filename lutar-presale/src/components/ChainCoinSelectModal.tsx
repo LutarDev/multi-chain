@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
+import { CHAIN_ICONS, TOKEN_ICONS } from "@/lib/icons";
 
 type ChainKey = "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON";
 type CurrencyKey = ChainKey | "USDC" | "USDT";
@@ -48,7 +50,10 @@ export function ChainCoinSelectModal({
                 className="px-2 py-1 rounded border text-sm bg-transparent border-white/10 hover:bg-white/10"
                 onClick={() => onSelect(selectedChain, cur)}
               >
-                {cur}
+                <span className="inline-flex items-center gap-2">
+                  <span className="relative w-4 h-4"><Image src={TOKEN_ICONS[cur] || CHAIN_ICONS[selectedChain]} alt={cur} fill sizes="16px" /></span>
+                  {cur}
+                </span>
               </button>
             ))}
           </div>

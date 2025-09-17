@@ -7,6 +7,7 @@ import { UnifiedConnectModal } from "@/components/UnifiedConnectModal";
 import Link from "next/link";
 import { ReferralBoot } from "@/components/ReferralBoot";
 import { ToastHost } from "@/components/ToastHost";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,10 +45,13 @@ export default function RootLayout({
               <Link href="/terms">Terms</Link>
               <Link href="/privacy">Privacy</Link>
             </nav>
-            <AppProviders>
-              <WalletConnectButton />
-              <UnifiedConnectModal />
-            </AppProviders>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <AppProviders>
+                <WalletConnectButton />
+                <UnifiedConnectModal />
+              </AppProviders>
+            </div>
           </header>
           <ReferralBoot />
           <ToastHost />
