@@ -6,6 +6,7 @@ import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { UnifiedConnectModal } from "@/components/UnifiedConnectModal";
 import Link from "next/link";
 import { ReferralBoot } from "@/components/ReferralBoot";
+import { ToastHost } from "@/components/ToastHost";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
             </AppProviders>
           </header>
           <ReferralBoot />
+          <ToastHost />
           <AppProviders>
             {children}
           </AppProviders>

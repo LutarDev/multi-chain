@@ -13,6 +13,7 @@ import QRCode from "qrcode";
 import { ERC20_CONTRACTS, ERC20_ABI, EvmChainIdByKey } from "@/lib/erc20";
 import { SOLANA_MINTS } from "@/lib/solana";
 import { USDT_TRC20_CONTRACT } from "@/lib/tron";
+import { pushToast } from "@/state/toast";
 
 type ChainKey = "BTC" | "ETH" | "BNB" | "SOL" | "POL" | "TRX" | "TON";
 type CurrencyKey = ChainKey | "USDC" | "USDT";
@@ -247,8 +248,11 @@ export function PresaleWidget(props: PresaleProps = {}) {
       });
       const json = await res.json();
       props.onRecorded?.({ ok: json?.ok, txHash });
+      if (json?.ok) pushToast("success", "Purchase recorded. Thank you!");
+      else pushToast("error", json?.error || "Failed to record purchase");
     } catch (e) {
       props.onRecorded?.({ ok: false, txHash });
+      pushToast("error", "Failed to record purchase");
     }
   }
 

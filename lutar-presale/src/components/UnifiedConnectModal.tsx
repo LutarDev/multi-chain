@@ -60,8 +60,35 @@ export function UnifiedConnectModal() {
 
   const tonAddress = useTonAddress(false);
   const [tonUi] = useTonConnectUI();
+  const [tonBalance, setTonBalance] = useState<string>("—");
+  useEffect(() => {
+    (async () => {
+      try {
+        if (tonAddress) {
+          const r = await fetch(`https://toncenter.com/api/v2/getAddressBalance?address=${tonAddress}`);
+          const j = await r.json();
+          if (j?.ok) setTonBalance((Number(j.result) / 1e9).toFixed(3) + " TON");
+        }
+      } catch {}
+    })();
+  }, [tonAddress]);
 
   const { address: tronAddress } = useTron();
+  const [trxBalance, setTrxBalance] = useState<string>("—");
+  useEffect(() => {
+    (async () => {
+      try {
+        if (tronAddress) {
+          const r = await fetch(`https://apilist.tronscanapi.com/api/accountv2?address=${tronAddress}`);
+          const j = await r.json();
+          const list: Array<{ tokenAbbr?: string; balance?: number }> = Array.isArray(j?.withPriceTokens) ? j.withPriceTokens : [];
+          const trxItem = list.find((t) => t.tokenAbbr === "TRX");
+          const bal = (trxItem?.balance as number | undefined) ?? (j?.balance as number | undefined);
+          if (bal !== undefined) setTrxBalance((Number(bal) / 1_000_000).toFixed(2) + " TRX");
+        }
+      } catch {}
+    })();
+  }, [tronAddress]);
 
   if (!snap.open) return null;
 
@@ -96,9 +123,9 @@ export function UnifiedConnectModal() {
                     : solWallet.publicKey
                     ? "—"
                     : tonAddress
-                    ? "—"
+                    ? tonBalance
                     : tronAddress
-                    ? "—"
+                    ? trxBalance
                     : "—"}
                 </span>
               </div>
