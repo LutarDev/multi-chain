@@ -4,6 +4,8 @@ import "./globals.css";
 import { AppProviders } from "@/providers/app-providers";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { UnifiedConnectModal } from "@/components/UnifiedConnectModal";
+import Link from "next/link";
+import { ReferralBoot } from "@/components/ReferralBoot";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,12 +34,20 @@ export default function RootLayout({
       >
         <div className="max-w-6xl mx-auto px-4 py-6">
           <header className="mb-6 flex items-center justify-between">
-            <h1 className="text-lg font-semibold">LUTAR Presale</h1>
+            <nav className="flex items-center gap-4 text-sm text-white/80">
+              <Link href="/" className="font-semibold">LUTAR Presale</Link>
+              <Link href="/docs">Docs</Link>
+              <Link href="/whitepaper">Whitepaper</Link>
+              <Link href="/audit" target="_blank">Audit</Link>
+              <Link href="/terms">Terms</Link>
+              <Link href="/privacy">Privacy</Link>
+            </nav>
             <AppProviders>
               <WalletConnectButton />
               <UnifiedConnectModal />
             </AppProviders>
           </header>
+          <ReferralBoot />
           <AppProviders>
             {children}
           </AppProviders>

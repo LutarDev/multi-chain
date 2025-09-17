@@ -2,12 +2,13 @@
 
 import { useSnapshot } from "valtio";
 import { walletModalState, closeWalletModal } from "@/state/wallet-modal";
-import { useAccount, useBalance } from "wagmi";
+import { useAccount, useBalance, useReadContract } from "wagmi";
 import { formatEther } from "viem";
 import { useWallet as useSolWallet } from "@solana/wallet-adapter-react";
 import { Connection } from "@solana/web3.js";
 import { getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
 import { SOLANA_MINTS } from "@/lib/solana";
+import { ERC20_ABI, ERC20_CONTRACTS, EvmChainIdByKey } from "@/lib/erc20";
 import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
 import { useTron } from "@/providers/tron";
 import { useEffect, useMemo, useState } from "react";
@@ -21,6 +22,24 @@ export function UnifiedConnectModal() {
   const snap = useSnapshot(walletModalState);
   const { address: evmAddress, isConnected: evmConnected } = useAccount();
   const evmNativeBalance = useBalance({ address: evmAddress, query: { enabled: !!evmAddress } });
+  const chainId = (typeof window !== "undefined" ? (window as unknown as { ethereum?: { chainId?: string } }).ethereum?.chainId : undefined);
+  const parsedChainId = typeof chainId === "string" ? parseInt(chainId, 16) : undefined;
+  const usdcAddr = parsedChainId ? ERC20_CONTRACTS.USDC[parsedChainId] : undefined;
+  const usdtAddr = parsedChainId ? ERC20_CONTRACTS.USDT[parsedChainId] : undefined;
+  const evmUsdc = useReadContract({
+    address: (usdcAddr as `0x${string}`) || undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: evmAddress ? [evmAddress as `0x${string}`] : undefined,
+    query: { enabled: !!evmAddress && !!usdcAddr },
+  });
+  const evmUsdt = useReadContract({
+    address: (usdtAddr as `0x${string}`) || undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: evmAddress ? [evmAddress as `0x${string}`] : undefined,
+    query: { enabled: !!evmAddress && !!usdtAddr },
+  });
 
   const solWallet = useSolWallet();
   const solConnection = useMemo(() => new Connection(SOL_RPC), []);
@@ -86,12 +105,18 @@ export function UnifiedConnectModal() {
               <div className="flex items-center justify-between">
                 <span className="text-white/60">USDC Balance</span>
                 <span>
-                  {solWallet.publicKey ? `${solUsdc} USDC` : evmConnected ? "—" : "—"}
+                  {solWallet.publicKey
+                    ? `${solUsdc} USDC`
+                    : evmConnected && evmUsdc.data
+                    ? `${(Number(evmUsdc.data) / 1_000_000).toFixed(2)} USDC`
+                    : "—"}
                 </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-white/60">USDT Balance</span>
-                <span>—</span>
+                <span>
+                  {evmConnected && evmUsdt.data ? `${(Number(evmUsdt.data) / 1_000_000).toFixed(2)} USDT` : "—"}
+                </span>
               </div>
             </div>
             <div className="flex items-center gap-2 justify-end">
