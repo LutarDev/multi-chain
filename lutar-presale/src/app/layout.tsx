@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/providers/app-providers";
-import { WalletConnectBar } from "@/components/WalletConnectBar";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
+import { UnifiedConnectModal } from "@/components/UnifiedConnectModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +34,8 @@ export default function RootLayout({
           <header className="mb-6 flex items-center justify-between">
             <h1 className="text-lg font-semibold">LUTAR Presale</h1>
             <AppProviders>
-              <WalletConnectBar />
+              <WalletConnectButton />
+              <UnifiedConnectModal />
             </AppProviders>
           </header>
           <AppProviders>
